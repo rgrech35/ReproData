@@ -1,0 +1,95 @@
+Reproducible Research Assignment 1
+==================================
+
+**Step 1: Read data, convert date column to date, prepare data for analysis**
+
+```{r, echo=TRUE}
+df <- read.csv("activity.csv", header=TRUE, stringsAsFactors = FALSE)
+df$date <- as.Date(df$date, "%Y-%m-%d")
+stepscount <- aggregate(steps ~ date, data = df, sum, na.rm = TRUE)
+```
+
+
+**Part 2a: Plot histogram of the total number of steps taken each day.**
+
+```{r, echo=TRUE}
+hist(stepscount$steps, xlab="Total Steps Per Day", ylab="Frequency", main="Histogram of Total Steps Per Day")
+```
+
+**Part 2b: Calculate and report the mean and median total number of steps each day**
+
+```{r, echo=TRUE}
+mean(stepscount$steps)
+median(stepscount$steps)
+```
+
+**Part 3a: Time series plot of the 5 minute interval and average number of steps taken, averaged across all three days**
+
+```{r, echo=TRUE}
+stepsInterval <- aggregate(steps ~ interval, data = df, mean, na.rm = TRUE)
+plot(steps ~ interval, data = stepsInterval, type = "l", xlab = "Time Intervals (5-minute)", 
+    ylab = "Mean number of steps taken (all Days)", main = "Average number of Steps Taken at different 5 minute Intervals", 
+    col = "red")
+```
+
+**Part 3b: Which 5 minute interval contains the most number of steps?**
+```{r, echo=TRUE}
+maxInterval <- stepsInterval[which.max(stepsInterval$steps), ]$interval
+maxInterval
+```
+
+**Part 4a: Calculate and report the total number of missing values in the dataset**
+```{r, echo=TRUE}
+naCount <- sum(is.na(df))
+naCount
+```
+
+**Part 4b: Devise a strategy for filling in the missing values in the dataset**
+**Part 4c: Create a new dataset with the missing values filled in**
+```{r echo=TRUE}
+interval2steps <- function(interval) {
+    stepsInterval[stepsInterval$interval == interval, ]$steps    
+}
+activityfull <- df
+count = 0
+for (i in 1:nrow(activityfull)) {
+    if (is.na(activityfull[i, ]$steps)) {
+        activityfull[i, ]$steps <- interval2steps(activityfull[i, ]$interval)
+        count = count + 1
+    }
+}
+cat("Total ", count, "NA values were filled.\n")
+```
+
+**Part 4d: Histogram of the total number of steps, calculation of the mean and median for the total number of steps per day.**
+```{r echo=TRUE}
+totalSteps <- aggregate(steps ~ date, data = activityfull, FUN=sum)
+hist(totalSteps$steps, col = "orange", xlab = "Total Number of Steps", 
+    ylab = "Frequency", main = "Histogram of Total Number of Steps taken each Day")
+
+mean(totalSteps$steps)
+median(totalSteps$steps)
+```
+**Do these values differ from the estimates from the first part of the assignment?**
+
+The mean value is the same. The median value is very slightly different.
+
+**What is the impact of inputting missing data on the estimates of the total daily number of steps?** 
+
+There appears to be little impact because we are using the mean of the intervals to fill in the missing values, so it's not bound to shift the data that much.
+
+
+**Part 5a: Create a new vactor variable with two new levels, weekday and weekend.
+```{r echo=TRUE}
+activityfull$daytype <- weekdays(activityfull$date)
+activityfull$daytype2 <- as.factor(ifelse(activityfull$daytype=="Saturday" | activityfull$daytype=="Sunday", "weekend", "weekday"))
+```
+
+**Part 5b: Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.**
+
+```{r echo=TRUE}
+library(lattice)
+activityfull2 <- aggregate(steps ~ interval + daytype2, activityfull, mean)
+xyplot(steps ~ interval | factor(daytype2), data = activityfull2, aspect = 1/2, 
+    type = "l")
+```
